@@ -9,7 +9,8 @@ def main():
     st.write("请选择一个实验模块")
 
     # 创建选项卡
-    tab1, tab2, tab3, tab4 = st.tabs(["图像增强", "边缘检测", "线性变换", "图像锐化"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        ["图像增强", "边缘检测", "线性变换", "图像锐化", "图像采样与量化", "彩色图像分割"])
 
     with tab1:
         image_enhancement()
@@ -21,6 +22,10 @@ def main():
         linear_transformation()
     with tab4:
         image_sharpening()
+    with tab5:
+        sampling_and_quantization()
+    with tab6:
+        color_image_segmentation()
 
 
 def image_enhancement():
@@ -255,7 +260,7 @@ def apply_piecewise_linear_transformation(image, a, b, c, d):
     transformed = np.zeros_like(gray_normalized)
     transformed[gray_normalized < a] = gray_normalized[gray_normalized < a] * (b / a)
     transformed[(gray_normalized >= a) & (gray_normalized < c)] = gray_normalized[(gray_normalized >= a) & (
-                gray_normalized < c)] * ((d - b) / (c - a)) + b
+            gray_normalized < c)] * ((d - b) / (c - a)) + b
     transformed[gray_normalized >= c] = gray_normalized[gray_normalized >= c] * ((1 - d) / (1 - c)) + d
 
     # 将图像恢复到 [0, 255]
@@ -354,6 +359,187 @@ def apply_sharpening(image, operator, direction):
 
     return sharpened
 
+
+def sampling_and_quantization():
+    st.header("图像采样与量化")
+    st.write("图像采样和量化处理")
+
+    # 上传图像
+    uploaded_file = st.file_uploader("上传一张图像", type=["jpg", "jpeg", "png"], key="file_uploader_saq")
+
+    if uploaded_file is not None:
+        # 读取图像
+        image = Image.open(uploaded_file)
+        image = np.array(image)
+
+        # 显示原始图像
+        st.image(image, caption="原始图像", use_container_width=True)
+
+        # 选择处理类型
+        processing_type = st.selectbox(
+            "选择处理类型",
+            ("图像采样", "图像量化"),
+            key="selectbox_saq"
+        )
+
+        if processing_type == "图像采样":
+            # 选择采样分辨率
+            sample_ratio = st.slider(
+                "选择采样分辨率",
+                min_value=2,
+                max_value=10,
+                value=2,
+                step=1,
+                key="slider_sample"
+            )
+
+            # 应用图像采样
+            if st.button("应用采样", key="button_sample"):
+                sampled_image = apply_sampling(image, sample_ratio)
+
+                # 显示采样后的图像
+                st.image(sampled_image, caption=f"采样后的图像 (分辨率: 1/{sample_ratio})", use_container_width=True)
+
+        elif processing_type == "图像量化":
+            # 选择量化等级
+            quantization_level = st.slider(
+                "选择量化等级",
+                min_value=2,
+                max_value=256,
+                value=64,
+                step=1,
+                key="slider_quantization"
+            )
+
+            # 应用图像量化
+            if st.button("应用量化", key="button_quantization"):
+                quantized_image = apply_quantization(image, quantization_level)
+
+                # 显示量化后的图像
+                st.image(quantized_image, caption=f"量化后的图像 (灰度级: {quantization_level})",
+                         use_container_width=True)
+
+
+def apply_sampling(image, sample_ratio):
+    # 转换为灰度图像
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # 获取原始图像尺寸
+    height, width = gray.shape
+
+    # 计算采样后的图像尺寸
+    sampled_height = height // sample_ratio
+    sampled_width = width // sample_ratio
+
+    # 采样后的图像
+    sampled = cv2.resize(gray, (sampled_width, sampled_height), interpolation=cv2.INTER_NEAREST)
+
+    # 将采样后的图像转换回 BGR 格式以便显示
+    sampled = cv2.cvtColor(sampled, cv2.COLOR_GRAY2BGR)
+
+    return sampled
+
+
+def apply_quantization(image, quantization_level):
+    # 转换为灰度图像
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # 量化
+    quantized = np.uint8(np.floor(gray / (256 / quantization_level)) * (256 / quantization_level))
+
+    # 将量化后的图像转换回 BGR 格式以便显示
+    quantized = cv2.cvtColor(quantized, cv2.COLOR_GRAY2BGR)
+
+    return quantized
+
+
+def color_image_segmentation():
+    st.header("彩色图像分割")
+    st.write("彩色图像分割处理")
+
+    # 上传图像
+    uploaded_file = st.file_uploader("上传一张图像", type=["jpg", "jpeg", "png"], key="file_uploader_cis")
+
+    if uploaded_file is not None:
+        # 读取图像
+        image = Image.open(uploaded_file)
+        image = np.array(image)
+
+        # 显示原始图像
+        st.image(image, caption="原始图像", use_container_width=True)
+
+        # 选择颜色空间
+        color_space = st.selectbox(
+            "选择颜色空间",
+            ("RGB", "HSI"),
+            key="selectbox_color_space"
+        )
+
+        if color_space == "RGB":
+            # RGB颜色空间分割
+            if st.button("显示RGB分量", key="button_rgb"):
+                r, g, b = cv2.split(image)
+                st.image(r, caption="R分量", use_container_width=True)
+                st.image(g, caption="G分量", use_container_width=True)
+                st.image(b, caption="B分量", use_container_width=True)
+
+            # 选择分割阈值
+            lower_thresh = st.slider("选择下界阈值", 0, 255, 50, key="slider_lower_thresh")
+            upper_thresh = st.slider("选择上界阈值", 0, 255, 200, key="slider_upper_thresh")
+
+            if st.button("应用RGB分割", key="button_rgb_seg"):
+                segmented_image = apply_rgb_segmentation(image, lower_thresh, upper_thresh)
+                st.image(segmented_image, caption="分割后的图像", use_container_width=True)
+
+        elif color_space == "HSI":
+            # 转换为HSI颜色空间
+            hsi_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+            # 显示HSI分量
+            if st.button("显示HSI分量", key="button_hsi"):
+                h, s, i = cv2.split(hsi_image)
+                st.image(h, caption="H分量", use_container_width=True)
+                st.image(s, caption="S分量", use_container_width=True)
+                st.image(i, caption="I分量", use_container_width=True)
+
+            # 选择分割阈值
+            lower_hue = st.slider("选择H下界色调", 0, 179, 20, key="slider_lower_hue")
+            upper_hue = st.slider("选择H上界色调", 0, 179, 160, key="slider_upper_hue")
+            lower_saturation = st.slider("选择S下界饱和度", 0, 255, 50, key="slider_lower_saturation")
+            upper_saturation = st.slider("选择S上界饱和度", 0, 255, 200, key="slider_upper_saturation")
+            lower_intensity = st.slider("选择I下界强度", 0, 255, 50, key="slider_lower_intensity")
+            upper_intensity = st.slider("选择I上界强度", 0, 255, 200, key="slider_upper_intensity")
+
+            if st.button("应用HSI分割", key="button_hsi_seg"):
+                segmented_image = apply_hsi_segmentation(hsi_image, lower_hue, upper_hue, lower_saturation,
+                                                         upper_saturation, lower_intensity, upper_intensity)
+                segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_HSV2BGR)
+                st.image(segmented_image, caption="分割后的图像", use_container_width=True)
+
+
+def apply_rgb_segmentation(image, lower_thresh, upper_thresh):
+    # 创建一个掩码，其中满足阈值条件的像素为白色，其余为黑色
+    lower = np.array([lower_thresh, lower_thresh, lower_thresh])
+    upper = np.array([upper_thresh, upper_thresh, upper_thresh])
+    mask = cv2.inRange(image, lower, upper)
+
+    # 应用掩码到原始图像
+    segmented = cv2.bitwise_and(image, image, mask=mask)
+
+    return segmented
+
+
+def apply_hsi_segmentation(hsi_image, lower_hue, upper_hue, lower_saturation, upper_saturation, lower_intensity,
+                           upper_intensity):
+    # 创建一个掩码，其中满足阈值条件的像素为白色，其余为黑色
+    lower = np.array([lower_hue, lower_saturation, lower_intensity])
+    upper = np.array([upper_hue, upper_saturation, upper_intensity])
+    mask = cv2.inRange(hsi_image, lower, upper)
+
+    # 应用掩码到HSI图像
+    segmented = cv2.bitwise_and(hsi_image, hsi_image, mask=mask)
+
+    return segmented
 
 
 if __name__ == "__main__":
