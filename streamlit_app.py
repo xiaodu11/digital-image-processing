@@ -2,7 +2,7 @@ import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
-
+import io
 
 def main():
     st.title("数字图像处理实验")
@@ -57,19 +57,35 @@ def image_enhancement():
             # 显示处理后的图像
             st.image(processed_image, caption=f"使用{operator}处理后的图像", use_container_width=True)
 
+            # 将处理后的图像转换为PIL.Image对象
+            processed_image_pil = Image.fromarray(processed_image)
+
+            # 将PIL.Image对象转换为字节数据
+            buffered = io.BytesIO()
+            processed_image_pil.save(buffered, format="JPEG")
+            img_data = buffered.getvalue()
+
+            # 添加下载按钮
+            st.download_button(
+                label="下载处理后的图像",
+                data=img_data,
+                file_name="enhanced_image.jpg",
+                mime="image/jpg"
+            )
+
 
 def apply_operator(image, operator):
     # 转换为灰度图像
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if operator == "Sobel (一阶)":
-        # Sobel 算子
+        # Sobel算子
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
         processed = cv2.magnitude(sobelx, sobely).astype(np.uint8)
 
     elif operator == "Prewitt (一阶)":
-        # Prewitt 算子
+        # Prewitt算子
         kernelx = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
         kernely = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
         prewittx = cv2.filter2D(gray.astype(np.float32), -1, kernelx)
@@ -77,7 +93,7 @@ def apply_operator(image, operator):
         processed = cv2.magnitude(prewittx, prewitty).astype(np.uint8)
 
     elif operator == "Roberts (一阶)":
-        # Roberts 算子
+        # Roberts算子
         kernelx = np.array([[1, 0], [0, -1]])
         kernely = np.array([[0, 1], [-1, 0]])
         robertsx = cv2.filter2D(gray.astype(np.float32), -1, kernelx)
@@ -85,10 +101,10 @@ def apply_operator(image, operator):
         processed = cv2.magnitude(robertsx, robertsy).astype(np.uint8)
 
     elif operator == "Laplacian (二阶)":
-        # Laplacian 算子
+        # Laplacian算子
         processed = cv2.Laplacian(gray, cv2.CV_64F).astype(np.uint8)
 
-    # 将处理后的图像转换回 BGR 格式以便显示
+    # 将处理后的图像转换回BGR格式以便显示
     processed = cv2.cvtColor(processed, cv2.COLOR_GRAY2BGR)
 
     return processed
@@ -123,13 +139,29 @@ def edge_detection():
             # 显示边缘检测后的图像
             st.image(edge_image, caption=f"使用{operator}检测到的边缘", use_container_width=True)
 
+            # 将处理后的图像转换为PIL.Image对象
+            edge_image_pil = Image.fromarray(edge_image)
+
+            # 将PIL.Image对象转换为字节数据
+            buffered = io.BytesIO()
+            edge_image_pil.save(buffered, format="JPEG")
+            img_data = buffered.getvalue()
+
+            # 添加下载按钮
+            st.download_button(
+                label="下载边缘检测后的图像",
+                data=img_data,
+                file_name="edge_image.jpg",
+                mime="image/jpg"
+            )
+
 
 def apply_edge_detection(image, operator):
     # 转换为灰度图像
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if operator == "Roberts":
-        # Roberts 算子
+        # Roberts算子
         kernelx = np.array([[1, 0], [0, -1]])
         kernely = np.array([[0, 1], [-1, 0]])
         robertsx = cv2.filter2D(gray.astype(np.float32), -1, kernelx)
@@ -137,13 +169,13 @@ def apply_edge_detection(image, operator):
         edge = cv2.magnitude(robertsx, robertsy).astype(np.uint8)
 
     elif operator == "Sobel":
-        # Sobel 算子
+        # Sobel算子
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
         edge = cv2.magnitude(sobelx, sobely).astype(np.uint8)
 
     elif operator == "Prewitt":
-        # Prewitt 算子
+        # Prewitt算子
         kernelx = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
         kernely = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
         prewittx = cv2.filter2D(gray.astype(np.float32), -1, kernelx)
@@ -151,16 +183,16 @@ def apply_edge_detection(image, operator):
         edge = cv2.magnitude(prewittx, prewitty).astype(np.uint8)
 
     elif operator == "Laplacian":
-        # Laplacian 算子
+        # Laplacian算子
         edge = cv2.Laplacian(gray, cv2.CV_64F).astype(np.uint8)
 
     elif operator == "LoG":
-        # LoG (Laplacian of Gaussian) 算子
-        # 先进行高斯模糊，再应用 Laplacian
+        # LoG (Laplacian of Gaussian)算子
+        # 先进行高斯模糊，再应用Laplacian
         blurred = cv2.GaussianBlur(gray, (3, 3), 0)
         edge = cv2.Laplacian(blurred, cv2.CV_64F).astype(np.uint8)
 
-    # 将边缘检测后的图像转换回 BGR 格式以便显示
+    # 将边缘检测后的图像转换回BGR格式以便显示
     edge = cv2.cvtColor(edge, cv2.COLOR_GRAY2BGR)
 
     return edge
@@ -217,6 +249,22 @@ def linear_transformation():
                 # 显示滤波后的图像
                 st.image(filtered_image, caption=f"使用{filter_type}处理后的图像", use_container_width=True)
 
+                # 将处理后的图像转换为PIL.Image对象
+                filtered_image_pil = Image.fromarray(filtered_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                filtered_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载滤波后的图像",
+                    data=img_data,
+                    file_name="filtered_image.jpg",
+                    mime="image/jpg"
+                )
+
         elif processing_type == "分段线性变换":
             # 选择分段线性变换参数
             a = st.slider("a", 0.0, 1.0, 0.3, 0.01)
@@ -231,6 +279,22 @@ def linear_transformation():
                 # 显示变换后的图像
                 st.image(transformed_image, caption="分段线性变换处理后的图像", use_container_width=True)
 
+                # 将处理后的图像转换为PIL.Image对象
+                transformed_image_pil = Image.fromarray(transformed_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                transformed_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载分段线性变换后的图像",
+                    data=img_data,
+                    file_name="transformed_image.jpg",
+                    mime="image/jpg"
+                )
+
 
 def apply_filter(image, filter_type, kernel_size):
     # 转换为灰度图像
@@ -243,7 +307,7 @@ def apply_filter(image, filter_type, kernel_size):
         # 均值滤波
         filtered = cv2.blur(gray, (kernel_size, kernel_size))
 
-    # 将滤波后的图像转换回 BGR 格式以便显示
+    # 将滤波后的图像转换回BGR格式以便显示
     filtered = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
 
     return filtered
@@ -253,7 +317,7 @@ def apply_piecewise_linear_transformation(image, a, b, c, d):
     # 转换为灰度图像
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # 将图像归一化到 [0, 1]
+    # 将图像归一化到[0, 1]
     gray_normalized = gray.astype(np.float32) / 255.0
 
     # 分段线性变换
@@ -263,10 +327,10 @@ def apply_piecewise_linear_transformation(image, a, b, c, d):
             gray_normalized < c)] * ((d - b) / (c - a)) + b
     transformed[gray_normalized >= c] = gray_normalized[gray_normalized >= c] * ((1 - d) / (1 - c)) + d
 
-    # 将图像恢复到 [0, 255]
+    # 将图像恢复到[0, 255]
     transformed = (transformed * 255).astype(np.uint8)
 
-    # 将变换后的图像转换回 BGR 格式以便显示
+    # 将变换后的图像转换回BGR格式以便显示
     transformed = cv2.cvtColor(transformed, cv2.COLOR_GRAY2BGR)
 
     return transformed
@@ -308,6 +372,22 @@ def image_sharpening():
             # 显示锐化后的图像
             st.image(sharpened_image, caption=f"使用{operator}在{direction}方向锐化后的图像", use_container_width=True)
 
+            # 将处理后的图像转换为PIL.Image对象
+            sharpened_image_pil = Image.fromarray(sharpened_image)
+
+            # 将PIL.Image对象转换为字节数据
+            buffered = io.BytesIO()
+            sharpened_image_pil.save(buffered, format="JPEG")
+            img_data = buffered.getvalue()
+
+            # 添加下载按钮
+            st.download_button(
+                label="下载锐化后的图像",
+                data=img_data,
+                file_name="sharpened_image.jpg",
+                mime="image/jpg"
+            )
+
 
 def apply_sharpening(image, operator, direction):
     # 转换为灰度图像
@@ -317,7 +397,7 @@ def apply_sharpening(image, operator, direction):
     gray_float = gray.astype(np.float32) / 255.0
 
     if operator == "Sobel":
-        # Sobel 算子
+        # Sobel算子
         if direction == "x":
             sobel = cv2.Sobel(gray_float, cv2.CV_32F, 1, 0, ksize=3)
         elif direction == "y":
@@ -326,7 +406,7 @@ def apply_sharpening(image, operator, direction):
         sharpened = cv2.addWeighted(gray_float, 1, cv2.magnitude(sobel, sobel), 1, 0)
 
     elif operator == "Prewitt":
-        # Prewitt 算子
+        # Prewitt算子
         if direction == "x":
             kernel = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
         elif direction == "y":
@@ -336,7 +416,7 @@ def apply_sharpening(image, operator, direction):
         sharpened = cv2.addWeighted(gray_float, 1, prewitt, 1, 0)
 
     elif operator == "Roberts":
-        # Roberts 算子
+        # Roberts算子
         if direction == "x":
             kernel = np.array([[1, 0], [0, -1]], dtype=np.float32)
         elif direction == "y":
@@ -346,15 +426,15 @@ def apply_sharpening(image, operator, direction):
         sharpened = cv2.addWeighted(gray_float, 1, roberts, 1, 0)
 
     elif operator == "Laplacian":
-        # Laplacian 算子
+        # Laplacian算子
         laplacian = cv2.Laplacian(gray_float, cv2.CV_32F)
         # 将原始图像与微分图像相加进行锐化
         sharpened = cv2.addWeighted(gray_float, 1, laplacian, 1, 0)
 
-    # 将锐化后的图像转换回 uint8 格式以便显示
+    # 将锐化后的图像转换回uint8格式以便显示
     sharpened = (sharpened * 255).astype(np.uint8)
 
-    # 将锐化后的图像转换回 BGR 格式以便显示
+    # 将锐化后的图像转换回BGR格式以便显示
     sharpened = cv2.cvtColor(sharpened, cv2.COLOR_GRAY2BGR)
 
     return sharpened
@@ -400,6 +480,22 @@ def sampling_and_quantization():
                 # 显示采样后的图像
                 st.image(sampled_image, caption=f"采样后的图像 (分辨率: 1/{sample_ratio})", use_container_width=True)
 
+                # 将处理后的图像转换为PIL.Image对象
+                sampled_image_pil = Image.fromarray(sampled_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                sampled_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载采样后的图像",
+                    data=img_data,
+                    file_name="sampled_image.jpg",
+                    mime="image/jpg"
+                )
+
         elif processing_type == "图像量化":
             # 选择量化等级
             quantization_level = st.slider(
@@ -419,6 +515,22 @@ def sampling_and_quantization():
                 st.image(quantized_image, caption=f"量化后的图像 (灰度级: {quantization_level})",
                          use_container_width=True)
 
+                # 将处理后的图像转换为PIL.Image对象
+                quantized_image_pil = Image.fromarray(quantized_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                quantized_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载量化后的图像",
+                    data=img_data,
+                    file_name="quantized_image.jpg",
+                    mime="image/jpg"
+                )
+
 
 def apply_sampling(image, sample_ratio):
     # 转换为灰度图像
@@ -434,7 +546,7 @@ def apply_sampling(image, sample_ratio):
     # 采样后的图像
     sampled = cv2.resize(gray, (sampled_width, sampled_height), interpolation=cv2.INTER_NEAREST)
 
-    # 将采样后的图像转换回 BGR 格式以便显示
+    # 将采样后的图像转换回BGR格式以便显示
     sampled = cv2.cvtColor(sampled, cv2.COLOR_GRAY2BGR)
 
     return sampled
@@ -447,7 +559,7 @@ def apply_quantization(image, quantization_level):
     # 量化
     quantized = np.uint8(np.floor(gray / (256 / quantization_level)) * (256 / quantization_level))
 
-    # 将量化后的图像转换回 BGR 格式以便显示
+    # 将量化后的图像转换回BGR格式以便显示
     quantized = cv2.cvtColor(quantized, cv2.COLOR_GRAY2BGR)
 
     return quantized
@@ -491,6 +603,22 @@ def color_image_segmentation():
                 segmented_image = apply_rgb_segmentation(image, lower_thresh, upper_thresh)
                 st.image(segmented_image, caption="分割后的图像", use_container_width=True)
 
+                # 将处理后的图像转换为PIL.Image对象
+                segmented_image_pil = Image.fromarray(segmented_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                segmented_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载分割后的图像",
+                    data=img_data,
+                    file_name="segmented_image.jpg",
+                    mime="image/jpg"
+                )
+
         elif color_space == "HSI":
             # 转换为HSI颜色空间
             hsi_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -515,6 +643,22 @@ def color_image_segmentation():
                                                          upper_saturation, lower_intensity, upper_intensity)
                 segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_HSV2BGR)
                 st.image(segmented_image, caption="分割后的图像", use_container_width=True)
+
+                # 将处理后的图像转换为PIL.Image对象
+                segmented_image_pil = Image.fromarray(segmented_image)
+
+                # 将PIL.Image对象转换为字节数据
+                buffered = io.BytesIO()
+                segmented_image_pil.save(buffered, format="JPEG")
+                img_data = buffered.getvalue()
+
+                # 添加下载按钮
+                st.download_button(
+                    label="下载分割后的图像",
+                    data=img_data,
+                    file_name="segmented_image.jpg",
+                    mime="image/jpg"
+                )
 
 
 def apply_rgb_segmentation(image, lower_thresh, upper_thresh):
